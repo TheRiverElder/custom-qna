@@ -1,26 +1,45 @@
 import React from 'react';
-import logo from './logo.svg';
 import './App.css';
+import { Layout } from 'antd';
+import { Home } from './Home';
+import Editor from './Editor';
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+const { Header, Footer, Sider, Content } = Layout;
+
+interface AppProp { }
+
+type ContentType = "home" | "editor" | "excise";
+
+interface AppState {
+  content: ContentType;
+}
+
+
+class App extends React.Component<AppProp, AppState> {
+
+  constructor(props: any) {
+    super(props);
+    this.state = { content: "home" };
+  }
+
+  setContentType(contentType: ContentType) {
+    this.setState({ content: contentType });
+  }
+
+  render() {
+    let content = null;
+    switch(this.state.content) {
+      case "home": content = (<Home setContentType={ this.setContentType.bind(this) }/>); break;
+      case "editor": content = (<Editor/>); break;
+      case "excise": content = null; break;
+    }
+    return content;
+  }
+
 }
 
 export default App;
+
+export type {
+  ContentType,
+}

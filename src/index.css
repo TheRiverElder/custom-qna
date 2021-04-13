@@ -11,3 +11,42 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+
+.fill-width {
+  width: 100%;
+}
+.fill-height {
+  height: 100%;
+}
+
+.d-flex {
+  display: flex;
+}
+.d-flex.flex-column {
+  flex-direction: column;
+}
+.flex-1 {
+  flex: 1;
+}
+
+.scroll-y {
+  overflow-y: auto;
+}
+
+.centerize-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.align-items-baseline {
+  align-items: baseline;
+}
+.align-items-center {
+  align-items: center;
+}
+
+.color-ffffff {
+  color: #ffffff;
+}
