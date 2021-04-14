@@ -34,6 +34,10 @@ code {
   overflow-y: auto;
 }
 
+.overflow-x-hidden {
+  overflow-x: hidden;
+}
+
 .centerize-container {
   display: flex;
   justify-content: center;

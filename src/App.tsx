@@ -1,10 +1,9 @@
 import React from 'react';
 import './App.css';
-import { Layout } from 'antd';
 import { Home } from './Home';
 import Editor from './Editor';
-
-const { Header, Footer, Sider, Content } = Layout;
+import Excise from './Excise';
+import { createTestQnaSet } from './test-utils';
 
 interface AppProp { }
 
@@ -30,8 +29,8 @@ class App extends React.Component<AppProp, AppState> {
     let content = null;
     switch(this.state.content) {
       case "home": content = (<Home setContentType={ this.setContentType.bind(this) }/>); break;
-      case "editor": content = (<Editor/>); break;
-      case "excise": content = null; break;
+      case "editor": content = (<Editor gotoHome={ () => this.setState({ content: "home" })}/>); break;
+      case "excise": content = (<Excise gotoHome={ () => this.setState({ content: "home" })} set={ createTestQnaSet(20) } />); break;
     }
     return content;
   }

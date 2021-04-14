@@ -1,6 +1,9 @@
 import { QnaItem, QnaSet } from "./interfaces";
 import download from 'downloadjs';
+import FileEncoder from "./FileEncoder";
+import FileDecoder from "./FileDecoder";
 
+// 在浏览器环境中，从文件中读取题集
 function readQnaSet(file: File, cb: (qnaSet: QnaSet) => void) {
     const reader = new FileReader()
     reader.onload = () => {
@@ -10,88 +13,55 @@ function readQnaSet(file: File, cb: (qnaSet: QnaSet) => void) {
     reader.readAsArrayBuffer(file);
 }
 
+// 在浏览器环境中写入（下载）题集
 function writeQnaSet(qnaSet: QnaSet, cb?: () => void) {
-    const buf: ArrayBuffer = convertQnaSetToArrayBuffer(qnaSet);
-    download(new Uint8Array(buf), "qna-data");
+    const buf: Uint8Array = convertQnaSetToArrayBuffer(qnaSet);
+    download(buf, "qna-data");
 }
 
+// 将题集数据转化为题集实例
 function convertArrayBufferToQnaSet(buf: ArrayBuffer): QnaSet {
-    const d = new DataView(buf);
-    const size = d.getUint32(0);
-    let i = 0;
-    const offset = 4;
-    let pointer = offset;
+    const input: FileDecoder = new FileDecoder(new DataView(buf));
+
+    const developmentVersion = input.readInt32();
+    const qsuid = input.readInt32();
+    const version = input.readUTF8();
+    const name = input.readUTF8();
+    const description = input.readUTF8();
+
     const items: Array<QnaItem> = [];
-    while (i < size) {
-        const quid = d.getUint32(pointer);
-        pointer += 4;
-        const [np1, question] = readUTF8(d, pointer);
-        pointer = np1;
-        const [np2, answer] = readUTF8(d, pointer);
-        pointer = np2;
-        const [np3, hint] = readUTF8(d, pointer);
-        pointer = np3;
+    const itemLength = input.readInt32();
+    for (let i = 0; i < itemLength; i++) {
+        const quid = input.readInt32();
+        const question = input.readUTF8();
+        const answer = input.readUTF8();
+        const hint = input.readUTF8();
 
         items.push({ quid, question, answer, hint });
-
-        i++;
     }
-    return { items };
+
+    return { developmentVersion, qsuid, version, name, description, items };
 }
 
-const UTF8_DECODER = new TextDecoder("UTF-8");
-function readUTF8(d: DataView, pointer: number): [number, string] {
-    const strLen = d.getUint16(pointer);
-    pointer += 2;
-    const str = UTF8_DECODER.decode(new Int8Array(d.buffer.slice(pointer, pointer + strLen)));
-    pointer += strLen;
-    return [pointer, str];
-}
+// 将题集转化为二进制文件数据
+// 顺序为：developmentVersion，qsuid，version，name，description，items
+function convertQnaSetToArrayBuffer(set: QnaSet): Uint8Array {
+    const output: FileEncoder = new FileEncoder();
+    output.writeInt32(set.developmentVersion);
+    output.writeInt32(set.qsuid);
+    output.writeUTF8(set.version);
+    output.writeUTF8(set.name);
+    output.writeUTF8(set.description);
 
-
-const UTF8_ENCODER = new TextEncoder();
-function convertQnaSetToArrayBuffer(set: QnaSet): ArrayBuffer {
-    let totalByteLength = 4;
-    
-    const tmp: Array<[number, Uint8Array, Uint8Array, Uint8Array]> = [];
+    output.writeInt32(set.items.length);
     for (const item of set.items) {
-        totalByteLength += 4;
-        const questionBuffer = UTF8_ENCODER.encode(item.question);
-        const answerBuffer = UTF8_ENCODER.encode(item.answer);
-        const hintBuffer = UTF8_ENCODER.encode(item.hint || '');
-        totalByteLength += 6 + questionBuffer.byteLength + answerBuffer.byteLength + hintBuffer.byteLength;
-        tmp.push([item.quid, questionBuffer, answerBuffer, hintBuffer]);
+        output.writeInt32(item.quid);
+        output.writeUTF8(item.question);
+        output.writeUTF8(item.answer);
+        output.writeUTF8(item.hint || '');
     }
 
-    const buf: ArrayBuffer = new ArrayBuffer(totalByteLength);
-    const buf8: Uint8Array = new Uint8Array(buf);
-    const d: DataView = new DataView(buf);
-    d.setInt32(0, tmp.length);
-    let pointer = 4;
-    for (const item of tmp) {
-        const [quid, questionBuffer, answerBuffer, hintBuffer] = item;
-        d.setInt32(pointer, quid);
-        pointer += 4;
-        d.setInt16(pointer, questionBuffer.length);
-        pointer += 2;
-        for (let i = 0; i < questionBuffer.length; i++) {
-            buf8[pointer + i] = questionBuffer[i];
-        }
-        pointer += questionBuffer.length;
-        d.setInt16(pointer, answerBuffer.length);
-        pointer += 2;
-        for (let i = 0; i < answerBuffer.length; i++) {
-            buf8[pointer + i] = answerBuffer[i];
-        }
-        pointer += answerBuffer.length;
-        d.setInt16(pointer, hintBuffer.length);
-        pointer += 2;
-        for (let i = 0; i < hintBuffer.length; i++) {
-            buf8[pointer + i] = hintBuffer[i];
-        }
-        pointer += hintBuffer.length;
-    }
-    return buf;
+    return output.build();
 }
 
 export {
