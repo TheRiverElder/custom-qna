@@ -2,6 +2,7 @@ import { QnaItem, QnaSet } from "../interfaces";
 import download from 'downloadjs';
 import FileEncoder from "./FileEncoder";
 import FileDecoder from "./FileDecoder";
+import { uid2str } from "./data-manager";
 
 // 在浏览器环境中，从文件中读取题集
 function readQnaSet(file: File, cb: (qnaSet: QnaSet) => void) {
@@ -16,7 +17,7 @@ function readQnaSet(file: File, cb: (qnaSet: QnaSet) => void) {
 // 在浏览器环境中写入（下载）题集
 function writeQnaSet(qnaSet: QnaSet, cb?: () => void) {
     const buf: Uint8Array = convertQnaSetToArrayBuffer(qnaSet);
-    download(buf, "qna-data");
+    download(buf, qnaSet.name + "_" + qnaSet.version + "_" + uid2str(qnaSet.qsuid) + ".bin");
 }
 
 // 将题集数据转化为题集实例

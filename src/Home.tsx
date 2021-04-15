@@ -13,6 +13,7 @@ interface HomeProps {
     progresses: Array<UserProgressInfo>;
     sets: Array<QnaSetInfo>;
     dataModifier: DataModifier;
+    saveData: () => void;
 }
 
 interface DataModifier {
@@ -71,8 +72,13 @@ export default class Home extends React.Component<HomeProps> {
                         </Tabs.TabPane>
                     </Tabs>
                 </Content>
-            <Footer>Footer</Footer>
-        </Layout>
+
+                <Footer>
+                    <Space>
+                        <Button onClick={ this.props.saveData }>强制保存</Button>
+                    </Space>
+                </Footer>
+            </Layout>
         )
     }
 

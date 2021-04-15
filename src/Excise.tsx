@@ -2,6 +2,8 @@ import { Typography, Space, Divider, Button, ButtonProps, Layout } from "antd";
 import React, { ReactNode } from "react";
 import { QnaItem, QnaSet, UserProgress } from "./interfaces";
 import { LeftOutlined } from '@ant-design/icons';
+import { randomItems } from "./utils/math-utils";
+import ReactMarkdown from "react-markdown";
 
 const { Text, Title } = Typography;
 
@@ -33,10 +35,9 @@ function isToday(date: Date) {
     );
 }
 
-function decideWork(set: QnaSet, progress: UserProgress, workSize: number = 10): Array<QnaItem> {
-    const finishedQuids: Set<number> = new Set<number>(progress?.finished || []);
-    const unfinishedItems: Array<QnaItem> = set.items.filter(item => !finishedQuids.has(item.quid));
-    
+// 根据当前进度，决定今日任务
+// 若有剩余进度则还原，若无则从旧知识点，则分别从已完成与未完成的项目中选取
+function decideWork(set: QnaSet, progress: UserProgress, newWorkSize: number = 10, oldWorkSize: number = 10): Array<QnaItem> {
     if (progress && 
         progress.hasWork && progress.work && progress.work.length > 0 && 
         progress.date && isToday(new Date(progress.date))
@@ -44,16 +45,17 @@ function decideWork(set: QnaSet, progress: UserProgress, workSize: number = 10):
         const map: Map<number, QnaItem> = new Map(set.items.map(item => [item.quid, item]));
         return progress.work.map(w => map.get(w)).filter(w => !!w) as Array<QnaItem>;
     } else {
-        const items = unfinishedItems;
-        const actualWorkSize = Math.min(workSize, items.length);
-        for (let i = 0; i < actualWorkSize; i++) {
-            const j = Math.floor(Math.random() * (items.length - i));
-            if (i === j) continue;
-            const tmp = items[i];
-            items[i] = items[j];
-            items[j] = tmp;
+        const finishedQuids: Set<number> = new Set<number>(progress?.finished || []);
+        const unfinishedItems: Array<QnaItem> = [];
+        const finishedItems: Array<QnaItem> = [];
+        
+        for (let item of set.items) {
+            (finishedQuids.has(item.quid) ? finishedItems : unfinishedItems).push(item);
         }
-        return items.slice(0, actualWorkSize);
+
+        const oldWork = randomItems(finishedItems, oldWorkSize);
+        const newWork = randomItems(unfinishedItems, newWorkSize);
+        return oldWork.concat(...newWork);
     }
 }
 
@@ -85,7 +87,6 @@ export default class Excise extends React.Component<ExceiseProps, ExceiseState> 
 
 
     render() {
-
         let content: ReactNode;
 
         const buttonProps: ButtonProps = {
@@ -112,22 +113,15 @@ export default class Excise extends React.Component<ExceiseProps, ExceiseState> 
 
                 content = (
                     <div className="d-flex flex-column fill-height">
-                        <Space
-                            direction="vertical"
-                            style={{ width: '100%' }}
-                        >
-                            <div className="question">
-                                <Title level={3} style={{ color: "#595959", marginTop: "2em" }}>{ ci.question }</Title>
-                            </div>
-                            
-                            <Divider style={{ marginTop: 0, width: "80%" }}/>
+                        <Title className="question" level={3} style={{ color: "#595959", marginTop: ".5em" }}>{ ci.question }</Title>
+                    
+                        <Divider />
 
-                            { this.state.prog >= ANSWER_SHOWN ? (<Text>{ ci.answer }</Text>) : null }
+                        <div className="flex-1 scroll-y">
+                            { this.state.prog >= ANSWER_SHOWN ? (<ReactMarkdown children={ ci.answer } />) : null }
 
                             { this.state.prog >= HINT_SHOWN ? (<Text type="secondary" style={{ fontStyle: "italic" }}>{ ci.hint }</Text>) : null }
-                        </Space>
-
-                        <div className="flex-1"/>
+                        </div>
 
                         <Space
                             size="middle"
@@ -217,6 +211,7 @@ export default class Excise extends React.Component<ExceiseProps, ExceiseState> 
     onComplete(item: QnaItem, workCompleteCount: number) {
         const p = this.props.progress;
         p.finished.push(item.quid);
+        p.finished = Array.from(new Set<number>(p.finished));
         p.workCompleteCount = workCompleteCount;
     }
 }

@@ -5,6 +5,7 @@ import './Editor.css';
 import { QnaItem, QnaSet } from "./interfaces";
 import { readQnaSet, writeQnaSet } from "./utils/file-utils";
 import { genQuid } from "./utils/test-utils";
+import ReactMarkdown from "react-markdown";
 
 const { Content, Header, Sider } = Layout;
 const { Item } = List;
@@ -23,9 +24,17 @@ interface EditableQnaSetMeta {
     description: string,
 }
 
+interface ItemPreview {
+    question: string;
+    answer: string;
+    hint: string;
+}
+
 type EditorState = QnaSet & {
     currentItem: QnaItem | null;
     editMeta: boolean;
+    itemPreview: ItemPreview | null;
+    isUpdateItemPreview: boolean,
 }
 
 class Editor extends React.Component<EditorProps, EditorState> {
@@ -35,6 +44,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
         this.state = Object.assign({}, props.set, {
             currentItem: null,
             editMeta: false,
+            itemPreview: null,
+            isUpdateItemPreview: false,
         });
     }
 
@@ -52,7 +63,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     });
                 }
             }
-            this.setState({ currentItem: item, editMeta: false });
+            this.setState({ currentItem: item, editMeta: false, itemPreview: makePreview(item) });
         }
     }
     
@@ -94,7 +105,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         <div className="Editor-sider-content fill-height d-flex flex-column">
                             <Card style={{ marginTop: ".5em" }} onClick={ this.editMeta.bind(this, true) }>
                                 <Card.Meta
-                                    avatar={ <Avatar size="large">{ this.state.name.slice(0, 2) }</Avatar> }
+                                    avatar={ <Avatar size="large">{ (this.state.name || '').slice(0, 2) }</Avatar> }
                                     title={ <Title level={3} ellipsis>{ this.state.name } { this.state.version }</Title> }
                                     description={ <Text ellipsis>{ this.state.description }</Text> }
                                 />
@@ -126,7 +137,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     <Divider style={{ height: "100%" }} type="vertical"/>
 
                     <Sider className="Editor-sider-right fill-height" width="50vh">
-                        { (!this.state.editMeta && this.state.currentItem) ? this.renderPreview() : null }
+                        { (!this.state.editMeta && this.state.currentItem) 
+                            ? this.renderPreview() : null }
                     </Sider>
                 </Layout>
             </Layout>
@@ -145,14 +157,15 @@ class Editor extends React.Component<EditorProps, EditorState> {
     }
 
     private formRef = React.createRef<FormInstance>();
-    private metaEditFormRef = React.createRef<FormInstance>();
 
     renderItemEdit() {
         const ci = this.state.currentItem;
         if (ci === null) return null;
 
-        this.formRef.current?.setFieldsValue(ci);
-        
+        if (!this.state.isUpdateItemPreview) {
+            this.formRef.current?.setFieldsValue(ci);
+        }
+
         return (
             <div className="fill-height">
                 <div className="d-flex">
@@ -176,6 +189,10 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     ref={ this.formRef } 
                     layout="vertical"
                     initialValues={ ci }
+                    onValuesChange={ (cv, values) => this.setState({ 
+                        itemPreview: makePreview(values), 
+                        isUpdateItemPreview: true,
+                    }) }
                     onFinish={ values => 
                         this.changeQna({
                             quid: ci.quid,
@@ -302,7 +319,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
     }
 
     renderPreview() {
-        const ci = this.state.currentItem;
+        const ci = this.state.itemPreview;
         if (ci === null) return null;
 
         return (
@@ -323,22 +340,15 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     <span className="flex-1"/>
                 </header>
 
-                <Space
-                    direction="vertical"
-                    style={{ width: '100%' }}
-                >
-                    <div className="question">
-                        <Title level={3} style={{ color: "#595959", marginTop: "2em" }}>{ ci.question }</Title>
-                    </div>
+                <Title className="question" level={3} style={{ color: "#595959", marginTop: ".5em" }}>{ ci.question }</Title>
                     
-                    <Divider style={{ marginTop: 0, width: "80%" }}/>
+                <Divider />
 
-                    <Text>{ ci.answer }</Text>
+                <div className="flex-1 scroll-y">
+                    <ReactMarkdown children={ ci.answer } />
 
                     <Text type="secondary" style={{ fontStyle: "italic" }}>{ ci.hint }</Text>
-                </Space>
-
-                <div className="flex-1"/>
+                </div>
 
                 <Space
                     size="middle"
@@ -363,7 +373,9 @@ class Editor extends React.Component<EditorProps, EditorState> {
         const newItems = this.state.items.slice().concat(newQna);
         this.setState({ 
             items: newItems,
+            editMeta: false,
             currentItem: newQna,
+            itemPreview: makePreview(newQna),
         });
         this.props.set.items = newItems;
     }
@@ -375,11 +387,27 @@ class Editor extends React.Component<EditorProps, EditorState> {
         const newItems = this.state.items.slice();
         newItems[index] = item;
         if (this.state.currentItem === item || this.state.currentItem?.quid === item.quid) {
-            this.setState({ items: newItems, currentItem: item });
+            this.setState({ 
+                items: newItems, 
+                currentItem: item, 
+                itemPreview: makePreview(item),
+                isUpdateItemPreview: false,
+            });
         } else {
-            this.setState({ items: newItems });
+            this.setState({ 
+                items: newItems,
+                isUpdateItemPreview: false,
+            });
         }
         this.props.set.items = newItems;
+    }
+
+    editQnaItem(item: QnaItem) {
+        this.setState({
+            editMeta: false,
+            currentItem: item,
+            itemPreview: makePreview(item),
+        });
     }
 
     editMeta(confirm: boolean = true) {
@@ -414,6 +442,14 @@ class Editor extends React.Component<EditorProps, EditorState> {
             editMeta: false, 
         }));
     }
+}
+
+function makePreview(item: any): ItemPreview {
+    return {
+        question: item.question || '',
+        answer: item.answer || '',
+        hint: item.hint || '',
+    };
 }
 
 export default Editor;

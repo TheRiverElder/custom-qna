@@ -16,6 +16,9 @@ import {
   getLoadedQnaSets,
   getLoadedUserProgresses,
   loadInfo,
+  uid2str,
+  saveInfo,
+  saveAll,
 } from './utils/data-manager';
 import ErrorPanel from './ErrorPanel';
 
@@ -60,6 +63,8 @@ class App extends React.Component<AppProp, AppState> implements DataModifier {
   }
 
   removeQnaSet(set: QnaSetInfo): void {
+    if (!window.confirm("确定删除" + set.name + "#" + uid2str(set.qsuid) + "的进度？\n这将导致依赖其的进度失效！")) return;
+
     removeQnaSet(set.qsuid);
     const newSets = this.state.sets.slice();
     const index = newSets.findIndex(s => s.qsuid === set.qsuid);
@@ -80,6 +85,7 @@ class App extends React.Component<AppProp, AppState> implements DataModifier {
 
   addProgress(progress: UserProgress, thenStart?: boolean | undefined): void {
     if (this.state.progresses.find(p => p.upuid === progress.upuid)) return;
+
     addUserProgress(progress);
     const pi = extractUserProgressInfo(progress);
     this.setState({
@@ -90,6 +96,7 @@ class App extends React.Component<AppProp, AppState> implements DataModifier {
   }
   
   removeProgress(progress: UserProgressInfo): void {
+    if (!window.confirm("确定删除" + uid2str(progress.upuid) + "的进度？")) return;
     removeUserProgress(progress.upuid);
     const newProgresses = this.state.progresses.slice();
     const index = newProgresses.findIndex(p => p.upuid === progress.upuid);
@@ -169,6 +176,7 @@ class App extends React.Component<AppProp, AppState> implements DataModifier {
           dataModifier={ this }
           progresses={ this.state.progresses }
           sets={ this.state.sets }
+          saveData={ this.saveData.bind(this) }
         />
       ); break;
       case "editor": {
@@ -206,6 +214,18 @@ class App extends React.Component<AppProp, AppState> implements DataModifier {
         gotoHome={ this.gotoHome } 
       />
     );
+  }
+
+  componentWillUnmount() {
+    this.saveData();
+  }
+
+  saveData() {
+    saveInfo({
+      sets: this.state.sets,
+      progresses: this.state.progresses,
+    });
+    saveAll();
   }
 
 }

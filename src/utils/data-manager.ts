@@ -104,21 +104,27 @@ function saveAll() {
 }
 
 function saveInfo(info: Info) {
-    localStorage.setItem(KEY_INFO, JSON.stringify(info));
+    localStorage.setItem(KEY_INFO, JSON.stringify(Object.assign(info, { uidCounter: count })));
 }
 
 interface Info {
-    uidCounter: number,
     sets: Array<QnaSetInfo>,
     progresses: Array<UserProgressInfo>,
 }
 
 function loadInfo(): Info {
     const json = localStorage.getItem(KEY_INFO);
-    if (json) return JSON.parse(json);
-    
-    const info = {
-        uidCounter: 0,
+    if (json) {
+        const obj = JSON.parse(json);
+        count = obj.uidCounter || count;
+        return {
+            sets: obj.sets,
+            progresses: obj.progresses,
+        };
+    }
+
+    count = 0;
+    let info: Info = {
         sets: [],
         progresses: [],
     };
