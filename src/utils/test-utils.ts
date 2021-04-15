@@ -1,9 +1,5 @@
-import { QnaSet } from "./interfaces";
-
-let count = 1;
-function genQuid() {
-    return count++;
-}
+import { QnaSet } from "../interfaces";
+import { genQuid } from "./data-manager";
 
 const MEANINGFUL = [
     {
@@ -25,7 +21,7 @@ function createTestQnaSet(size: number = 2): QnaSet {
         developmentVersion: 1,
         qsuid,
         version: "1.0.0",
-        name: "未命名题集-" + qsuid,
+        name: randomName(),
         description: "创建于 " + new Date().toLocaleString(),
         items: size <= 2 
             ? MEANINGFUL.slice(0, size) 
@@ -36,6 +32,12 @@ function createTestQnaSet(size: number = 2): QnaSet {
                 hint: (i % 2) ? ((i + 2) + 'th hint.') : '',
             }))),
     };
+}
+
+function randomName(): string {
+    const a = 'a'.charCodeAt(0);
+    const r = String.fromCharCode(...Array(2 + Math.floor(Math.random() * 8)).fill(0).map(() => a + Math.floor(Math.random() * 26)));
+    return r[0].toUpperCase() + r.slice(1);
 }
 
 export {

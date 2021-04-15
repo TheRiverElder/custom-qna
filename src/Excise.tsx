@@ -7,7 +7,7 @@ const { Text, Title } = Typography;
 
 interface ExceiseProps {
     set: QnaSet;
-    progress?: UserProgress;
+    progress: UserProgress;
     gotoHome: () => void;
 }
 
@@ -33,7 +33,7 @@ function isToday(date: Date) {
     );
 }
 
-function decideWork(set: QnaSet, progress?: UserProgress, workSize: number = 10): Array<QnaItem> {
+function decideWork(set: QnaSet, progress: UserProgress, workSize: number = 10): Array<QnaItem> {
     const finishedQuids: Set<number> = new Set<number>(progress?.finished || []);
     const unfinishedItems: Array<QnaItem> = set.items.filter(item => !finishedQuids.has(item.quid));
     
@@ -63,13 +63,23 @@ export default class Excise extends React.Component<ExceiseProps, ExceiseState> 
     constructor(props: ExceiseProps) {
         super(props);
 
+        const progress = props.progress;
+
+        const work = decideWork(props.set, progress);
+        const index = progress.workCompleteCount || 0;
+        
+        progress.date = Date.now();
+        progress.hasWork = true;
+        progress.work = work.map(i => i.quid);
+        progress.workCompleteCount = index;
+
         this.state = {
             finished: new Set(),
-            work: decideWork(props.set, props.progress),
-            index: 0,
+            work,
+            index,
             success: false,
             prog: QUESTION_SHOWN,
-            allFinished: false,
+            allFinished: index >= work.length,
         };
     }
 
@@ -88,7 +98,7 @@ export default class Excise extends React.Component<ExceiseProps, ExceiseState> 
             content = (
                 <div className="centerize-container fill-height">
                     <Space direction="vertical">
-                        <Title>今日任务完成！</Title>
+                        <Title>{ this.props.progress.finished.length >= this.props.set.items.length ? "该题集已全部答完" : "今日任务完成！"}</Title>
 
                         <Button {...buttonProps} type="primary" onClick={ this.props.gotoHome }>返回</Button>
                     </Space>
@@ -173,11 +183,12 @@ export default class Excise extends React.Component<ExceiseProps, ExceiseState> 
     nextQuestion() {
         const ci = this.state.work[this.state.index];
         if (this.state.success) {
-            if (this.state.index >= this.state.work.length - 1) {
+            const nextIndex = this.state.index + 1;
+            if (nextIndex >= this.state.work.length) {
                 this.setState({
                     finished: this.state.finished.add(ci.quid),
                     success: false,
-                    index: this.state.index + 1,
+                    index: nextIndex,
                     prog: QUESTION_SHOWN,
                     allFinished: true,
                 });
@@ -185,10 +196,11 @@ export default class Excise extends React.Component<ExceiseProps, ExceiseState> 
                 this.setState({
                     finished: this.state.finished.add(ci.quid),
                     success: false,
-                    index: this.state.index + 1,
+                    index: nextIndex,
                     prog: QUESTION_SHOWN,
                 });
             }
+            this.onComplete(ci, nextIndex);
         } else {
             const newWork = this.state.work.slice();
             newWork.splice(this.state.index, 1);
@@ -200,5 +212,11 @@ export default class Excise extends React.Component<ExceiseProps, ExceiseState> 
                 prog: QUESTION_SHOWN,
             });
         }
+    }
+
+    onComplete(item: QnaItem, workCompleteCount: number) {
+        const p = this.props.progress;
+        p.finished.push(item.quid);
+        p.workCompleteCount = workCompleteCount;
     }
 }

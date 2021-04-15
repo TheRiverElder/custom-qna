@@ -3,8 +3,8 @@ import React from "react";
 import { PlusOutlined, SaveOutlined, HomeOutlined, FileOutlined, LeftOutlined } from '@ant-design/icons';
 import './Editor.css';
 import { QnaItem, QnaSet } from "./interfaces";
-import { readQnaSet, writeQnaSet } from "./file-utils";
-import { createTestQnaSet, genQuid } from "./test-utils";
+import { readQnaSet, writeQnaSet } from "./utils/file-utils";
+import { genQuid } from "./utils/test-utils";
 
 const { Content, Header, Sider } = Layout;
 const { Item } = List;
@@ -13,6 +13,7 @@ const { TextArea } = Input;
 const { Text, Title } = Typography;
 
 interface EditorProps {
+    set: QnaSet;
     gotoHome: () => void;
 }
 
@@ -31,7 +32,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
     constructor(props: EditorProps) {
         super(props);
-        this.state = Object.assign(createTestQnaSet(), {
+        this.state = Object.assign({}, props.set, {
             currentItem: null,
             editMeta: false,
         });
@@ -359,10 +360,12 @@ class Editor extends React.Component<EditorProps, EditorState> {
             answer: '',
             hint: '',
         };
+        const newItems = this.state.items.slice().concat(newQna);
         this.setState({ 
-            items: this.state.items.slice().concat(newQna),
+            items: newItems,
             currentItem: newQna,
         });
+        this.props.set.items = newItems;
     }
 
     changeQna(item: QnaItem) {
@@ -376,6 +379,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         } else {
             this.setState({ items: newItems });
         }
+        this.props.set.items = newItems;
     }
 
     editMeta(confirm: boolean = true) {
@@ -384,6 +388,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
     setMeta(meta: EditableQnaSetMeta) {
         this.setState(meta);
+        Object.assign(this.props.set, meta);
     }
 
     save() {

@@ -1,4 +1,4 @@
-import { QnaItem, QnaSet } from "./interfaces";
+import { QnaItem, QnaSet } from "../interfaces";
 import download from 'downloadjs';
 import FileEncoder from "./FileEncoder";
 import FileDecoder from "./FileDecoder";
@@ -67,4 +67,6 @@ function convertQnaSetToArrayBuffer(set: QnaSet): Uint8Array {
 export {
     readQnaSet,
     writeQnaSet,
+    convertArrayBufferToQnaSet,
+    convertQnaSetToArrayBuffer,
 }

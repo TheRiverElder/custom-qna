@@ -14,9 +14,9 @@ interface QnaSet {
 }
 
 interface UserProgress {
-    // 对应题集的快照，用于在还未载入题集时显示题集信息，推荐格式：题集名称+题集版本
-    snapshot: string;
-    // 对应题集的QSUID
+    // 进度的UID
+    upuid: number;
+    // 对应题集d的UID
     qsuid: number;
     // 这是已经熟记的习题的QUID
     finished: Array<number>;
@@ -26,6 +26,8 @@ interface UserProgress {
     hasWork: boolean;
     // 今日练习题
     work?: Array<number>;
+    // 今日练习题完成数
+    workCompleteCount?: number;
     // 上述练习题的有效日期
     date?: number;
 }
@@ -41,8 +43,44 @@ interface QnaItem {
     hint?: string;
 }
 
+interface UserProgressInfo {
+    // 进度的UID
+    upuid: number;
+    // 对应题集的UID
+    qsuid: number;
+    // 题集完成数
+    finishedCount: number;
+    // 题集总数
+    // totalCount: number;
+    // 是否有确定的习题
+    hasWork: boolean;
+    // 今日练习题
+    work?: Array<number>;
+    // 上述练习题的有效日期
+    date?: number;
+    // 今日练习题完成数
+    workCompleteCount?: number;
+    // 最后一次修改时间
+    lastModified: number;
+}
+
+interface QnaSetInfo {
+    // 问题与回答的数量
+    itemCount: number;
+    // 该题集名称
+    name: string;
+    // 该题集的QSUID用于识别该题集的唯一表示，哪怕名称、版本改变，该QSUID也不会变
+    qsuid: number;
+    // 该题集的描述，以及需要传达给使用者的信息
+    description: string;
+    // 题集的版本 推荐格式：aa.bb.cc
+    version: string;
+}
+
 export type {
     QnaSet,
     QnaItem,
     UserProgress,
+    UserProgressInfo,
+    QnaSetInfo,
 }
