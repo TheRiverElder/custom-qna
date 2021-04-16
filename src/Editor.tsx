@@ -1,6 +1,6 @@
-import { Avatar, Breadcrumb, Button, Card, Divider, Form, FormInstance, Input, Layout, List, Space, Typography, Upload } from "antd";
+import { Avatar, Breadcrumb, Button, Card, Divider, Dropdown, Form, FormInstance, Input, Layout, List, Menu, Space, Switch, Typography, Upload } from "antd";
 import React from "react";
-import { PlusOutlined, SaveOutlined, HomeOutlined, FileOutlined, LeftOutlined } from '@ant-design/icons';
+import { PlusOutlined, SaveOutlined, HomeOutlined, FileOutlined, LeftOutlined, MenuOutlined, ProfileOutlined } from '@ant-design/icons';
 import './Editor.css';
 import { QnaItem, QnaSet } from "./interfaces";
 import { readQnaSet, writeQnaSet } from "./utils/file-utils";
@@ -34,7 +34,9 @@ type EditorState = QnaSet & {
     currentItem: QnaItem | null;
     editMeta: boolean;
     itemPreview: ItemPreview | null;
-    isUpdateItemPreview: boolean,
+    isUpdateItemPreview: boolean;
+    needHide: boolean;
+    hideRight: boolean;
 }
 
 class Editor extends React.Component<EditorProps, EditorState> {
@@ -46,6 +48,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
             editMeta: false,
             itemPreview: null,
             isUpdateItemPreview: false,
+            needHide: true,
+            hideRight: true,
         });
     }
 
@@ -69,39 +73,70 @@ class Editor extends React.Component<EditorProps, EditorState> {
     
     render() {
         return (
-            <Layout className="Editor fill-height">
-                <Header className="d-flex align-items-center">
-                    <Title level={2} style={{ color: "#ffffff", padding: 0 }}>题集编辑器</Title>
+            <Layout className="Editor fill-height" style={{ zIndex: 0 }}>
+                <Header className="d-flex align-items-center" style={{ zIndex: 4 }}>
+                    <Button shape="circle" icon={ <HomeOutlined /> } onClick={ this.props.gotoHome } />
 
                     <span className="flex-1"/>
 
-                    <Space>
-                        <Button
-                            shape="round"
-                            icon={ <HomeOutlined /> } 
-                            onClick={ this.props.gotoHome }
-                        >主页</Button>
+                    <Dropdown trigger={['click']} placement="bottomCenter" overlay={
+                        <Menu>                            
+                            <Menu.Item>
+                                <Upload 
+                                    showUploadList={false}
+                                    onChange={ (e) => this.open(e.file.originFileObj) }
+                                >
+                                    <Button
+                                        type="text"
+                                        icon={ <FileOutlined /> } 
+                                    >打开</Button>
+                                </Upload>
+                            </Menu.Item>
 
-                        <Upload 
-                            showUploadList={false}
-                            onChange={ (e) => this.open(e.file.originFileObj) }
-                        >
-                            <Button
-                                shape="round"
-                                icon={ <FileOutlined /> } 
-                            >打开</Button>
-                        </Upload>
+                            <Menu.Item>
+                                <Button
+                                    type="text"
+                                    icon={ <SaveOutlined /> } 
+                                    onClick={ this.save.bind(this) }
+                                >保存</Button>
+                            </Menu.Item>
 
-                        <Button
-                            shape="round"
-                            icon={ <SaveOutlined /> } 
-                            onClick={ this.save.bind(this) }
-                        >保存</Button>
-                    </Space>
+                            <Menu.Item className="centerize-container">
+                                <Switch
+                                    checkedChildren={<Text>移动</Text>}
+                                    unCheckedChildren={<Text>桌面</Text>}
+                                    defaultChecked={ this.state.needHide }
+                                    onChange={ checked => this.setState({ needHide: checked }) }
+                                />
+                            </Menu.Item>
+                        </Menu>
+                    }>
+                        <Button>更多</Button>
+                    </Dropdown>
+
+                    <span className="flex-1"/>
+
+                    {
+                        (!this.state.needHide) ? null : (
+                            <Switch
+                                checkedChildren={ <ProfileOutlined /> }
+                                onChange={ checked => this.setState({ hideRight: !checked }) }
+                            />
+                        )
+                    }
                 </Header>
 
-                <Layout>
-                    <Sider className="Editor-sider-left fill-height" width="36vh">
+                <Layout style={{ position: "relative" }}>
+                    <Sider 
+                        collapsible={ this.state.needHide }
+                        collapsedWidth={0}
+                        className="Editor-sider-left fill-height" 
+                        width="36vh"
+                        style={{ 
+                            zIndex: 3,
+                            position: this.state.needHide ? "absolute" : "relative",
+                        }}
+                    >
                         <div className="Editor-sider-content fill-height d-flex flex-column">
                             <Card style={{ marginTop: ".5em" }} onClick={ this.editMeta.bind(this, true) }>
                                 <Card.Meta
@@ -134,9 +169,17 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         { this.state.editMeta ? this.renderMetaEdit() : this.renderItemEdit() }
                     </Content>
 
-                    <Divider style={{ height: "100%" }} type="vertical"/>
+                    { this.state.needHide ? null : <Divider style={{ height: "100%" }} type="vertical"/> }
 
-                    <Sider className="Editor-sider-right fill-height" width="50vh">
+                    <Sider 
+                        className="Editor-sider-right fill-height" 
+                        width="50vh"
+                        style={{ 
+                            zIndex: 2,
+                            position: this.state.needHide ? "absolute" : "relative",
+                            visibility: (this.state.needHide && this.state.hideRight) ? "hidden" : "visible",
+                        }}
+                    >
                         { (!this.state.editMeta && this.state.currentItem) 
                             ? this.renderPreview() : null }
                     </Sider>

@@ -1,15 +1,13 @@
 .Editor-sider-left {
-    padding: 0 .5em;
     background-color: #ffffff;
 }
 
 .Editor-sider-right {
-    padding: 1em;
     background-color: transparent;
 }
 
 .Editor-sider-content {
-
+    padding: 0 .5em;
 }
 
 .qna-list {
@@ -39,6 +37,7 @@
 }
 
 .preview {
+    max-width: 100%;
     background-color: #ffffff;
 }
 
@@ -50,4 +49,9 @@
     text-align: center;
     margin: 0;
     padding: 0;
+}
+
+.Editor-sider-right {
+    top: 0;
+    right: 0;
 }
